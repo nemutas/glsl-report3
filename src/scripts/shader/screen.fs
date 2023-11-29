@@ -62,6 +62,7 @@ vec2 sdf(vec3 p) {
 }
 
 #include './modules/normal.glsl'
+#include './modules/shadow.glsl'
 
 void main() {
   vec2 p = (gl_FragCoord.xy * 2.0 - uResolution) / min(uResolution.x, uResolution.y);
@@ -84,6 +85,7 @@ void main() {
   vec3 color = bg;
 
   if (dist < MAX_DIST) {
+    vec3 light = vec3(5.0, 3.0, 3.0);
     vec3 normal = calcNormal(ray);
 
     color = vec3(1.0);
@@ -98,14 +100,13 @@ void main() {
 
     if (data.y == 0.0) {
       color *= vec3(0.61, 0.53, 0.00);
-    } else if(data.y == 1.0) {
-      color *= vec3(0.15);
+    } else if (data.y == 1.0) {
+      color *= vec3(0.1);
     } else {
-      color *= vec3(0.8);
+      color *= vec3(1.0);
     }
-
-    vec3 light = normalize(vec3(5.0, 3.0, 3.0));
-    float diffuse = max(dot(normal, light), 0.3);
+    
+    float diffuse = max(dot(normal, normalize(light)), 0.5);
     color *= pow(diffuse + 0.3, 3.0);
 
     float fresnel = 1.0 - pow(1.0 + dot(rd, normal), 5.0);
@@ -114,6 +115,9 @@ void main() {
     float fog = 1.0 - smoothstep(5.0, 12.0, dist);
     fog *= smoothstep(0.8, 5.0, dist);
     color = mix(bg, color, fog);
+
+    float shadow = softShadow(ray + normal * 0.01, light, 8.0);
+    color = mix(color * vec3(0.05), color, shadow);
   }
 
   gl_FragColor = vec4(color, 1.0);
